@@ -1,0 +1,307 @@
+{
+  "name": "Água Limpa - Fotos WhatsApp para Drive",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agua-limpa",
+        "options": {}
+      },
+      "id": "eece2647-4c49-4ebc-a9ff-d0babcd1e82f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "agua-limpa-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "GRUPO_LOJA = '120363409721626552@g.us'; const results = []; for (const item of $input.all()) { const data = (item.json.body && item.json.body.data) || {}; const isImage = data.messageType === 'imageMessage'; const isGrupoCerto = data.key && data.key.remoteJid === GRUPO_LOJA; if (isImage && isGrupoCerto) { results.push(item); } } return results;"
+      },
+      "id": "50f8124c-7af1-4f14-b28e-b1ef6615fa19",
+      "name": "Filtrar Imagem Recebida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://evolution-api:8080/chat/getBase64FromMediaMessage/agua-limpa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "troque_por_uma_chave_segura"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"message\": { \"key\": { \"id\": $json.body.data.key.id } }, \"convertToMp4\": false } }}",
+        "options": {}
+      },
+      "id": "055a3dfb-e1fe-46d2-a22f-c961a9a6495e",
+      "name": "Buscar Mídia Base64",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const media = $input.first().json; const original = $('Webhook').first().json.body.data; const caption = original.message?.imageMessage?.caption; const mimetype = media.mimetype || original.message?.imageMessage?.mimetype || 'image/jpeg'; const extensionMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }; const ext = extensionMap[mimetype] || 'jpg'; let baseName; if (caption && caption.trim()) { baseName = caption.trim().replace(/[\\\\/:*?\"<>|]/g, '-'); } else { const now = new Date(); const pad = (n) => String(n).padStart(2, '0'); const dia = pad(now.getDate()); const mes = pad(now.getMonth() + 1); const ano = now.getFullYear(); const hora = pad(now.getHours()); const min = pad(now.getMinutes()); const seg = pad(now.getSeconds()); baseName = `${dia}${mes}${ano}${hora}${min}${seg}`; } const fileName = `${baseName}.${ext}`; const binaryData = await this.helpers.prepareBinaryData( Buffer.from(media.base64, 'base64'), fileName, mimetype ); return [{ json: { fileName }, binary: { data: binaryData } }];"
+      },
+      "id": "f6535b76-8e55-4d24-891f-34c286cbf1f1",
+      "name": "Preparar Nome e Binário",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "10X30RckNi8WGywfm7LPZd5bxEnVbxINa"
+        },
+        "options": {}
+      },
+      "id": "5c2a7351-d821-4588-970a-d5ae9fc2fa08",
+      "name": "Upload no Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        960,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "bnJVakllWSPleXHD",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://evolution-api:8080/message/sendMedia/agua-limpa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "troque_por_uma_chave_segura"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "120363409721626552@g.us"
+            },
+            {
+              "name": "mediatype",
+              "value": "image"
+            },
+            {
+              "name": "mimetype",
+              "value": "={{ $('Buscar Mídia Base64').item.json.mimetype }}"
+            },
+            {
+              "name": "caption",
+              "value": "=✨ Imagem salva com sucesso!\n\n📄 _Arquivo_:\n➡️ `{{ $('Preparar Nome e Binário').item.json.fileName }}`\n\n🗂️ _Diretório:_\n➡️ `G://Meu Drive//FotosLoja//{{ $('Preparar Nome e Binário').item.json.fileName }}`\n\n🔗 _Acesse a imagem de qualquer dispositivo conectado ao seu drive!_"
+            },
+            {
+              "name": "media",
+              "value": "={{ $('Buscar Mídia Base64').item.json.base64 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "148d45bc-808a-454e-a91c-3258444e86a8",
+      "name": "Enviar Confirmação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1168,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const GRUPO_LOJA = '120363409721626552@g.us';\nconst results = [];\n\nfor (const item of $input.all()) {\n  const data = (item.json.body && item.json.body.data) || {};\n  const isGroupUpdate = item.json.body && item.json.body.event === 'group-participants.update';\n  const isGrupoCerto = data.id === GRUPO_LOJA || data.remoteJid === GRUPO_LOJA;\n  const isAdd = data.action === 'add';\n\n  if (isGroupUpdate && isGrupoCerto && isAdd) {\n    const participants = data.participants || [];\n    for (const p of participants) {\n      // Suporta os dois formatos possíveis: string simples OU objeto { phoneNumber }\n      const numero = typeof p === 'string' ? p : p.phoneNumber;\n      if (numero) {\n        results.push({ json: { numero, grupo: GRUPO_LOJA } });\n      }\n    }\n  }\n}\n\nreturn results;"
+      },
+      "id": "691c35af-8a06-4cc8-a8ff-ee5564d951a4",
+      "name": "Filtrar Novo Membro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://evolution-api:8080/message/sendText/agua-limpa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "troque_por_uma_chave_segura"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.grupo }}"
+            },
+            {
+              "name": "text",
+              "value": "=👋 Bem-vindo(a) ao grupo, @{{ $json.numero.split('@')[0] }}!\n\n📸 Envie fotos de produtos aqui que elas são salvas automaticamente no Drive da loja.\n\n✏️ Se quiser dar um nome específico ao arquivo, é só colocar como legenda da foto."
+            },
+            {
+              "name": "mentioned",
+              "value": "={{ [$json.numero] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b8acad20-83d4-4ca3-ae93-a1ab50f175d2",
+      "name": "Enviar Boas-Vindas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        224
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Imagem Recebida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filtrar Novo Membro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Imagem Recebida": {
+      "main": [
+        [
+          {
+            "node": "Buscar Mídia Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Mídia Base64": {
+      "main": [
+        [
+          {
+            "node": "Preparar Nome e Binário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Nome e Binário": {
+      "main": [
+        [
+          {
+            "node": "Upload no Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload no Drive": {
+      "main": [
+        [
+          {
+            "node": "Enviar Confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Novo Membro": {
+      "main": [
+        [
+          {
+            "node": "Enviar Boas-Vindas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c3762fb9-19b1-406a-9f25-bc1c911d6b63",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "54cefbed2c9211ef677af02134683141816b07642e1cd0b066328f8b2f46e59f"
+  },
+  "nodeGroups": [],
+  "id": "RL8eYdkoyiWDCEpa",
+  "tags": []
+}
