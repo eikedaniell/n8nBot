@@ -67,13 +67,13 @@ Veja `.env.example` para a lista completa. Nunca commite o arquivo `.env` real �
 
 ```
 .
-├── docker-compose.yml       # Definição dos serviços
-├── .env.example              # Modelo de variáveis de ambiente
+├── docs/
+│   └── MANUAL.md  # Guia completo de instalação e erros comuns
 ├── workflow/
 │   └── agua-limpa-workflow.json   # Workflow do n8n (importável)
-├── docs/
-│   └── MANUAL.md              # Guia completo de instalação e erros comuns
-└── README.md
+├── .env.example              # Modelo de variáveis de ambiente
+├── README.md
+└── docker-compose.yml       # Definição dos serviços
 ```
 
 ## 🗺️ Roadmap / ideias futuras
