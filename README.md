@@ -91,4 +91,4 @@ Veja `.env.example` para a lista completa. Nunca commite o arquivo `.env` real �
 
 ## 📄 Licença
 
-Defina a licença do seu projeto aqui (ex: MIT).
+MIT
