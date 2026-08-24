@@ -69,10 +69,11 @@ Veja `.env.example` para a lista completa. Nunca commite o arquivo `.env` real �
 .
 ├── docs/
 │   └── MANUAL.md  # Guia completo de instalação e erros comuns
+│   └── PRIVACY.md
+│   └── README.md
 ├── workflow/
 │   └── agua-limpa-workflow.json   # Workflow do n8n (importável)
 ├── .env.example              # Modelo de variáveis de ambiente
-├── README.md
 └── docker-compose.yml       # Definição dos serviços
 ```
 
